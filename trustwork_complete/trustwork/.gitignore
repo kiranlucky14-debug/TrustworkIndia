@@ -1,0 +1,56 @@
+# ═══════════════════════════════════════════════
+#  TrustWork — Git Ignore
+# ═══════════════════════════════════════════════
+
+# Environment files — NEVER commit these
+.env
+.env.local
+.env.production
+.env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Node modules
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+backend/dist/
+
+# Prisma generated client
+backend/node_modules/.prisma/
+
+# Logs
+*.log
+logs/
+backend/logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.vscode/settings.json
+.idea/
+*.iml
+
+# PM2
+ecosystem.config.js.bak
+.pm2/
+
+# Uploads (if local)
+backend/uploads/
+backend/public/uploads/
+
+# Test coverage
+coverage/
+
+# Temporary
+tmp/
+temp/
