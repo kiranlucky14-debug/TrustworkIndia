@@ -94,8 +94,14 @@ const getJob = async (req, res) => {
                 instagramUrl: true, facebookUrl: true, website: true,
                 hourlyRate: true, demoRate: true,
                 profileCompleted: true,
-                // Mask contact info
                 email: true, phone: true,
+                // Fetch skills through UserSkill join table
+                skills: {
+                  include: {
+                    skill: { select: { id: true, name: true, category: true } },
+                  },
+                  orderBy: { skill: { name: 'asc' } },
+                },
                 _count: { select: { freelancerJobs: true, reviewsReceived: true } },
               },
             },

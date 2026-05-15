@@ -158,13 +158,22 @@ function AssignModal({ open, onClose, job, onAssigned }) {
     await api.patch(`/jobs/applications/${applicationId}/shortlist`, { shortlisted })
   }
 
+  // Normalise UserSkill join objects -> plain skill arrays so FreelancerCard works
+  const normalise = (apps) => apps.map(a => ({
+    ...a,
+    user: a.user ? {
+      ...a.user,
+      skills: (a.user.skills || []).map(us => us.skill || us),
+    } : null,
+  }))
+
   const shown = filter === 'shortlisted'
-    ? applicants.filter(a => a.shortlisted)
-    : applicants
+    ? normalise(applicants.filter(a => a.shortlisted))
+    : normalise(applicants)
 
   return (
     <>
-      <Modal open={open && !preview} onClose={onClose} title={`Applications (${applicants.length})`}>
+      <Modal open={open && !preview} onClose={onClose} title={`Applications (${applicants.length})`} wide>
         {/* Filter tabs */}
         {applicants.length > 0 && (
           <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,.04)', padding:3, borderRadius:10, marginBottom:16, width:'fit-content' }}>
@@ -202,7 +211,7 @@ function AssignModal({ open, onClose, job, onAssigned }) {
 
       {/* Full-profile preview modal */}
       {preview && (
-        <Modal open={!!preview} onClose={() => setPreview(null)} title="Freelancer Profile">
+        <Modal open={!!preview} onClose={() => setPreview(null)} title="Freelancer Profile" wide>
           <FreelancerCard
             application={preview}
             onShortlist={async (id, val) => {
@@ -350,14 +359,78 @@ export default function JobDetailPage() {
             </div>
           )}
 
+          {/* Applicant quick preview for client */}
+          {isClient && job.status === 'CREATED' && job.applicants?.length > 0 && (
+            <div className="card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display font-semibold text-white text-sm uppercase tracking-wide">
+                  Applications ({job.applicants.length})
+                </h3>
+                <button onClick={() => setShowAssign(true)}
+                  className="text-xs text-brand-400 hover:text-brand-300 transition-colors">
+                  View all &rarr;
+                </button>
+              </div>
+              <div className="space-y-3">
+                {job.applicants.slice(0, 3).map(a => {
+                  const fl = a.user
+                  const skillsNorm = (fl?.skills || []).map(us => us.skill || us)
+                  return (
+                    <button key={a.id}
+                      onClick={() => setShowAssign(true)}
+                      className="w-full text-left flex items-center gap-3 p-3 rounded-xl bg-ink-800/60 hover:bg-ink-800 border border-ink-700/50 hover:border-brand-500/30 transition-all">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold flex-shrink-0"
+                        style={{ background:'rgba(20,184,166,.15)', color:'#14b8a6', border:'1px solid rgba(20,184,166,.25)' }}>
+                        {fl?.name?.[0]?.toUpperCase() || '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-ink-100 text-sm">{fl?.name || 'Applicant'}</div>
+                        {fl?.title && <div className="text-xs text-ink-500 truncate">{fl.title}</div>}
+                        {skillsNorm.length > 0 && (
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            {skillsNorm.slice(0, 3).map(s => (
+                              <span key={s?.id || s?.name || s} className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                                {s?.name || s}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        {fl?.rating > 0 && <div className="text-xs text-amber-400">{fl.rating.toFixed(1)} &#9733;</div>}
+                        {fl?.experienceLevel && <div className="text-[10px] text-ink-600 mt-0.5">{fl.experienceLevel.split(' ')[0]}</div>}
+                      </div>
+                    </button>
+                  )
+                })}
+                {job.applicants.length > 3 && (
+                  <button onClick={() => setShowAssign(true)} className="w-full text-center text-xs text-ink-500 hover:text-brand-400 py-2 transition-colors">
+                    +{job.applicants.length - 3} more applicant{job.applicants.length - 3 !== 1 ? 's' : ''} - Click to view all
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {isClient && job.status === 'CREATED' && !job.applicants?.length && (
+            <div className="card p-5 text-center">
+              <div className="w-10 h-10 rounded-full bg-ink-800 flex items-center justify-center mx-auto mb-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="1.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </div>
+              <p className="text-sm text-ink-500">No applications yet. Share this job to attract freelancers.</p>
+            </div>
+          )}
+
           {/* Client actions */}
           {isClient && (
             <div className="card p-5 space-y-3">
               <h3 className="font-display font-semibold text-white text-sm uppercase tracking-wide">Actions</h3>
               <div className="flex flex-wrap gap-3">
                 {job.status === 'CREATED' && (
-                  <button className="btn-primary btn" onClick={() => setShowAssign(true)}>
-                     Assign Freelancer
+                  <button className="btn-primary btn" onClick={() => setShowAssign(true)}
+                    style={{ display:'flex', alignItems:'center', gap:7 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    View Applicants {job._count?.applicants > 0 ? `(${job._count.applicants})` : ''}
                   </button>
                 )}
                 {job.status === 'ASSIGNED' && !job.escrows?.length && (
